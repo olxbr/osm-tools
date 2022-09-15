@@ -1,0 +1,29 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+
+  S3ToolsLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: osm-s3tools-lambda-role
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+
+  S3ToolsLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: osm-s3tools-lambda
+      Role: !GetAtt S3ToolsLambdaRole.Arn
+      Runtime: python3.7
+      Handler: lambda_function.lambda_handler
+      Code:
+        ZipFile: |
+          import json
+          def lambda_handler(event, context):
+            return {
+                'statusCode': 200,
+                'body': json.dumps({ 'buckets': [] })
+            }
