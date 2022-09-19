@@ -16,7 +16,7 @@ def find_bucket(s3, params):
         if bucket:
             buckets = [{
                 'name': bucket.name,
-                'creation_date': bucket.creation_date
+                'creation_date': bucket.creation_date.isoformat()
             }]
 
     if search_by == 'prefix':
@@ -25,7 +25,7 @@ def find_bucket(s3, params):
                 if bucket.name.startswith(bucket_name):
                     buckets.append({
                         'name': bucket.name,
-                        'creation_date': bucket.creation_date
+                        'creation_date': bucket.creation_date.isoformat()
                     })
         except Exception as err:
             log.error(f'list buckets error: {err}')
@@ -42,7 +42,6 @@ def find_bucket(s3, params):
             'buckets': buckets
         })
     }
-
 
 
 def lambda_handler(event, context):
@@ -89,4 +88,3 @@ def lambda_handler(event, context):
             'message': 's3tools fn not found'
         })
     }
-

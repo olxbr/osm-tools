@@ -5,5 +5,5 @@ build:
 	cp lambda_function.py build
 	cd build && zip -qr ../lambda.zip .
 
-deploy:
+deploy: build
 	aws lambda update-function-code --function-name s3tools-lambda --zip-file fileb://lambda.zip

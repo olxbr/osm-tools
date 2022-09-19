@@ -1,21 +1,65 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Resources:
 
+Parameters:
+  LambdaName:
+    Type: String
+    Default: osm-s3tools-lambda
+    Description: Lambda name
+
+  LambdaRoleName:
+    Type: String
+    Default: osm-s3tools-lambda-role
+    Description: Lambda role name
+
+  TrustRoleName:
+    Type: String
+    Default: org-osm-api
+    Description: Role name to assume in accounts
+
+Resources:
   S3ToolsLambdaRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: osm-s3tools-lambda-role
+      RoleName: !Ref LambdaRoleName
       AssumeRolePolicyDocument:
         Statement:
           - Effect: Allow
             Principal:
               Service: lambda.amazonaws.com
             Action: sts:AssumeRole
+      Policies:
+        - PolicyName: default
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - "*"
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:ListBucket
+                  - s3:ListAllMyBuckets
+                  - s3:GetBucketLocation
+                  - s3:GetObjectVersion
+                  - s3:GetLifecycleConfiguration
+                Resource:
+                  - arn:aws:s3:::*
+              - Effect: Allow
+                Action:
+                  - sts:AssumeRole
+                Resource: !Sub
+                  - arn:aws:iam::*:role/${OrgRole}
+                  - { OrgRole: !Ref TrustRoleName }
 
   S3ToolsLambdaFunction:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: osm-s3tools-lambda
+      FunctionName: !Ref LambdaName
       Role: !GetAtt S3ToolsLambdaRole.Arn
       Runtime: python3.7
       Handler: lambda_function.lambda_handler
