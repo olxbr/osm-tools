@@ -5,7 +5,7 @@ import boto3
 
 log = logging.getLogger(__name__)
 TRUST_ROLE_NAME = os.getenv('TRUST_ROLE_NAME', 'org-osm-api')
-AWS_REGION = os.getenv('AWS_REGION', 'us-east-1')
+DEFAULT_REGION = os.getenv('DEFAULT_REGION', 'us-east-1')
 
 
 def get_bucket(name, bucket_list):
@@ -17,20 +17,20 @@ def get_bucket(name, bucket_list):
 
 def find_bucket(s3_client, params):
     bucket_name = params.get('bucketName')
-    if not bucket_name:
+    if bucket_name is None:
         return {
             'statusCode': 400,
             'body': json.dumps({
-                'message': 'missing bucket_name parameter'
+                'message': 'missing bucketName parameter'
             })
         }
 
     search_by = params.get('searchBy')
-    if not search_by:
+    if search_by is None:
         return {
             'statusCode': 400,
             'body': json.dumps({
-                'message': 'missing search_by parameter'
+                'message': 'missing searchBy parameter'
             })
         }
 
@@ -64,11 +64,11 @@ def find_bucket(s3_client, params):
 
 def bucket_info(s3_client, params):
     bucket_name = params.get('bucketName')
-    if not bucket_name:
+    if bucket_name is None:
         return {
             'statusCode': 400,
             'body': json.dumps({
-                'message': 'missing bucket_name parameter'
+                'message': 'missing bucketName parameter'
             })
         }
 
@@ -103,7 +103,7 @@ def bucket_info(s3_client, params):
 
 def lambda_handler(event, context):
     params = event.get('queryStringParameters')
-    if not params:
+    if params is None:
         return {
             'statusCode': 400,
             'body': json.dumps({
@@ -112,7 +112,7 @@ def lambda_handler(event, context):
         }
 
     account = params.get('account')
-    if not account:
+    if account is None:
         return {
             'statusCode': 400,
             'body': json.dumps({
@@ -131,7 +131,7 @@ def lambda_handler(event, context):
         aws_access_key_id=credentials['AccessKeyId'],
         aws_secret_access_key=credentials['SecretAccessKey'],
         aws_session_token=credentials['SessionToken'],
-        region_name=AWS_REGION
+        region_name=DEFAULT_REGION
     )
 
     fn = params.get('fn')
