@@ -1,6 +1,7 @@
-*.pyc
 .DS_Store
 .venv/
+*.pyc
 build/
 lambda.zip
+TODO.md
 venv/
