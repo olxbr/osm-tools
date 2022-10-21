@@ -2,6 +2,7 @@ import os
 import json
 import logging
 import boto3
+import botocore
 
 log = logging.getLogger(__name__)
 TRUST_ROLE_NAME = os.getenv('TRUST_ROLE_NAME', 'org-osm-api')
@@ -62,6 +63,35 @@ def find_bucket(s3_client, params):
     }
 
 
+def bucket_status(policy_status, public_access_block):
+    if policy_status == None and public_access_block == None: # 0
+        return 'Objects can be public'
+
+    elif policy_status == None and public_access_block != None: # public_access_block
+        if not all(list(public_access_block.values())):
+            return 'Objects can be public'
+        if all(list(public_access_block.values())) or public_access_block['IgnorePublicAcls']:
+            return 'Bucket and objects not public'
+
+    if policy_status != None and public_access_block == None: # policy
+        if policy_status:
+            return 'Public'
+        else:
+            return 'Objects can be public'
+
+    elif policy_status != None and public_access_block != None: # 2
+        if policy_status and not all(list(public_access_block.values())):
+            return 'Public'
+        elif policy_status and all(list(public_access_block.values())):
+            return 'Only authorized users of this account'
+
+        if not policy_status and not all(list(public_access_block.values())):
+            return 'Objects can be public'
+
+        elif not policy_status and all(list(public_access_block.values())) or public_access_block['IgnorePublicAcls']:
+            return 'Bucket and objects not public'
+
+
 def bucket_info(s3_client, params):
     bucket_name = params.get('bucketName')
     if bucket_name is None:
@@ -80,11 +110,20 @@ def bucket_info(s3_client, params):
         info['creation_date'] = bucket["CreationDate"].isoformat()
 
         try:
-            policy_status = s3_client.get_bucket_policy_status(Bucket=bucket_name)
-            info["is_public"] = policy_status['PolicyStatus']['IsPublic']
-        except Exception as err:
-            info["is_public"] = ""
+            policy_status = s3_client.get_bucket_policy_status(Bucket=bucket['Name'])['PolicyStatus']['IsPublic']
+            info['is_public'] = policy_status
+        except botocore.exceptions.ClientError as err:
+            policy_status = None
             log.error(err)
+
+        try:
+            public_access_block = s3_client.get_public_access_block(Bucket=bucket['Name'])['PublicAccessBlockConfiguration']
+            info['public_access_block'] = public_access_block
+        except botocore.exceptions.ClientError as err:
+            public_access_block = None
+            log.error(err)
+
+        info["public_status"] = bucket_status(policy_status, public_access_block)
 
         try:
             policy = s3_client.get_bucket_policy(Bucket=bucket_name)
@@ -97,6 +136,19 @@ def bucket_info(s3_client, params):
         'statusCode': 200,
         'body': json.dumps({
             'bucket': info
+        })
+    }
+
+
+def list_buckets(s3_client, params):
+    response = s3_client.list_buckets()
+    buckets = response.get("Buckets", [])
+
+    return {
+        'statusCode': 200,
+        'body': json.dumps({
+            'account': params.get('account'),
+            'buckets': buckets
         })
     }
 
@@ -139,6 +191,8 @@ def lambda_handler(event, context):
         return find_bucket(s3_client, params)
     elif fn == 'bucket-info':
         return bucket_info(s3_client, params)
+    elif fn == 'list-buckets':
+        return list_buckets(s3_client, params)
 
     return {
         'statusCode': 404,
