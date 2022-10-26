@@ -1,3 +1,7 @@
-# OSM S3 Tools
+# OSM Tools
 
-Lambda for Olx Security Manager API with some AWS S3 Tools
+Olx Security Manager functions
+
+## S3
+
+Lambda for OSM API with some AWS S3 Tools

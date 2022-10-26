@@ -5,3 +5,4 @@ build/
 lambda.zip
 TODO.md
 venv/
+run.py

@@ -1,5 +1,5 @@
 import unittest
-from lambda_function import lambda_handler, find_bucket, bucket_info
+from lambda_functions import lambda_handler, find_bucket, bucket_info, list_buckets
 
 
 class FakeS3Client:
@@ -38,6 +38,14 @@ class BucketInfoTest(unittest.TestCase):
         result = bucket_info(FakeS3Client(), {})
         self.assertEqual(400, result['statusCode'])
         self.assertIn('missing bucketName parameter', result['body'])
+
+
+class ListBucketsTest(unittest.TestCase):
+
+    def test_missing_mode_parameter(self):
+        result = list_buckets(FakeS3Client(), {})
+        self.assertEqual(400, result['statusCode'])
+        self.assertIn('missing mode parameter', result['body'])
 
 
 if __name__ == '__main__':
