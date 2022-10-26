@@ -5,20 +5,16 @@ Parameters:
     Type: String
     Default: osm-s3tools-lambda
     Description: Lambda name
-
   LambdaRoleName:
     Type: String
     Default: osm-s3tools-lambda-role
     Description: Lambda role name
-
   TrustRoleName:
     Type: String
     Default: org-osm-api
     Description: Role name to assume in accounts
-
   MainAccountID:
     Type: String
-    Default: 99999999
     Description: Lambda main account ID
 
 Resources:
@@ -52,17 +48,19 @@ Resources:
                   - arn:aws:s3:::*
               - Effect: Allow
                 Action:
-                - dynamodb:BatchGetItem,
-                - dynamodb:BatchWriteItem,
-                - dynamodb:DeleteItem,
-                - dynamodb:GetItem,
-                - dynamodb:PutItem,
-                - dynamodb:Query,
-                - dynamodb:Scan,
-                - dynamodb:UpdateItem
+                  - dynamodb:BatchGetItem,
+                  - dynamodb:BatchWriteItem,
+                  - dynamodb:DeleteItem,
+                  - dynamodb:GetItem,
+                  - dynamodb:PutItem,
+                  - dynamodb:Query,
+                  - dynamodb:Scan,
+                  - dynamodb:UpdateItem
                 Resource:
-                  - arn:aws:dynamodb:us-east-1:025517087168:table/osm_s3_account_buckets,
-                  - arn:aws:dynamodb:us-east-1:025517087168:table/osm_s3_account_buckets/index/*
+                  # - accounts_table,
+                  # - accounts_table/*
+                  # - summary_table,
+                  # - summary_table/*
               - Effect: Allow
                 Action:
                   - sts:AssumeRole
