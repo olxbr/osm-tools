@@ -3,6 +3,7 @@ import json
 import logging
 import boto3
 import botocore
+from boto3.dynamodb.conditions import Key
 from datetime import datetime
 
 log = logging.getLogger(__name__)
@@ -153,12 +154,11 @@ def list_buckets(s3_client, params):
             })
         }
 
-    dynamo_resource = boto3.resource('dynamodb')
-    s3_dynamo_table = dynamo_resource.Table(S3_BUCKETS_TABLE)
+    dynamo_table = boto3.resource('dynamodb').Table(S3_BUCKETS_TABLE)
 
     if mode == 'latest':
         try:
-            result = s3_dynamo_table.get_item(Key={'account': account}).get("Item")
+            result = dynamo_table.get_item(Key={'account': account}).get("Item")
             if result:
                 buckets = json.loads(result.get('buckets'))
                 return {
@@ -185,7 +185,7 @@ def list_buckets(s3_client, params):
     updated_at = datetime.now().isoformat()
 
     try:
-        result = s3_dynamo_table.put_item(
+        result = dynamo_table.put_item(
             Item={
                 'account': account,
                 'updated_at': updated_at,
@@ -205,15 +205,107 @@ def list_buckets(s3_client, params):
     }
 
 
-def lambda_handler(event, context):
-    params = event.get('queryStringParameters')
-    if params is None:
+def list_buckets_summary(params):
+    account = params.get('account')
+    dynamo_table = boto3.resource('dynamodb').Table(S3_SUMMARY_TABLE)
+
+    try:
+        result = dynamo_table.query(
+            IndexName='account-index',
+            KeyConditionExpression=Key('account').eq(account))
+        if result:
+            return {
+                'statusCode': 200,
+                'body': json.dumps(result.get("Items"))
+            }
+    except Exception as err:
+        log.error(err)
+
+    return {
+        'statusCode': 404,
+        'body': ''
+    }
+
+
+def get_bucket_summary(params):
+    bucket_name = params.get('bucketName')
+    if bucket_name is None:
         return {
             'statusCode': 400,
             'body': json.dumps({
-                'message': 'missing queryStringParameters'
+                'message': 'missing bucketName parameter'
             })
         }
+
+    dynamo_table = boto3.resource('dynamodb').Table(S3_SUMMARY_TABLE)
+
+    try:
+        result = dynamo_table.get_item(Key={'bucket': bucket_name}).get("Item")
+        if result:
+            return {
+                'statusCode': 200,
+                'body': json.dumps(result)
+            }
+    except Exception as err:
+        log.error(err)
+
+    return {
+        'statusCode': 404,
+        'body': ''
+    }
+
+
+def put_bucket_summary(params, body):
+    account = params.get('account')
+
+    if body is None:
+        return {
+            'statusCode': 400,
+            'body': json.dumps({
+                'message': 'missing body'
+            })
+        }
+
+    body = json.loads(body)
+    bucket_name = body.get('bucketName')
+    review_status = body.get('reviewStatus')
+    notes = body.get('notes', '')
+
+    if bucket_name is None or review_status is None:
+        return {
+            'statusCode': 400,
+            'body': json.dumps({
+                'message': 'missing parameters (bucketName, reviewStatus)'
+            })
+        }
+
+    dynamo_table = boto3.resource('dynamodb').Table(S3_SUMMARY_TABLE)
+
+    try:
+        _ = dynamo_table.put_item(Item={
+            'bucket': bucket_name,
+            'account': account,
+            'updated_at': datetime.now().isoformat(),
+            'review_status': review_status,
+            'notes': notes
+        })
+        return {
+            'statusCode': 200,
+            'body': json.dumps({'message': 'success'})
+        }
+    except Exception as err:
+        msg = f'put_bucket_summary error: {err}'
+        log.error(msg)
+        return {
+            'statusCode': 500,
+            'body': json.dumps({'message': msg})
+        }
+
+
+def lambda_handler(event, context):
+    http_method = event['requestContext']['http']['method']
+    params = event.get('queryStringParameters')
+    body = event.get('body')
 
     account = params.get('account')
     if account is None:
@@ -241,12 +333,21 @@ def lambda_handler(event, context):
     )
 
     fn = params.get('fn')
+
     if fn == 'find-bucket':
         return find_bucket(s3_client, params)
     elif fn == 'bucket-info':
         return bucket_info(s3_client, params)
     elif fn == 'list-buckets':
         return list_buckets(s3_client, params)
+    elif fn == 'list-buckets-summary':
+        return list_buckets_summary(params)
+    elif fn == 'get-bucket-summary':
+        return get_bucket_summary(params)
+
+    if http_method == 'PUT':
+        if fn == 'put-bucket-summary':
+            return put_bucket_summary(params, body)
 
     return {
         'statusCode': 404,

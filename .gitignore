@@ -3,6 +3,7 @@
 *.pyc
 build/
 lambda.zip
+TODO
 TODO.md
 venv/
 run.py

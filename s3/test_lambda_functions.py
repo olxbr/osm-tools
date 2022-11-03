@@ -8,15 +8,24 @@ class FakeS3Client:
 
 class HandlerTest(unittest.TestCase):
 
-    def test_missing_queryStringParameters(self):
-        result = lambda_handler({}, {})
-        self.assertEqual(400, result['statusCode'])
-        self.assertIn('missing queryStringParameters', result['body'])
+    def setUp(self):
+        self.fake_event = {
+            'queryStringParameters': {},
+            'requestContext': {
+                'http': {
+                    'method': 'GET'
+                }
+            }
+        }
 
     def test_missing_account_parameter(self):
-        result = lambda_handler({'queryStringParameters': {}}, {})
+        result = lambda_handler(self.fake_event, {})
         self.assertEqual(400, result['statusCode'])
         self.assertIn('missing account parameter', result['body'])
+
+
+class BucketStatusTest(unittest.TestCase):
+    pass
 
 
 class FindBucketTest(unittest.TestCase):
@@ -46,6 +55,10 @@ class ListBucketsTest(unittest.TestCase):
         result = list_buckets(FakeS3Client(), {})
         self.assertEqual(400, result['statusCode'])
         self.assertIn('missing mode parameter', result['body'])
+
+
+class BucketSymmaryTest(unittest.TestCase):
+    pass
 
 
 if __name__ == '__main__':
