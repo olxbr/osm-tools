@@ -2,7 +2,6 @@ import os
 import json
 import logging
 import boto3
-import botocore
 from boto3.dynamodb.conditions import Key
 from datetime import datetime
 
@@ -21,18 +20,15 @@ def get_bucket(name, bucket_list):
 
 
 def bucket_status(s3_client, bucket_name):
-    policy_status = None
-    public_access_block = None
-
     try:
         policy_status = s3_client.get_bucket_policy_status(Bucket=bucket_name)['PolicyStatus']['IsPublic']
-    except botocore.exceptions.ClientError as err:
-        log.error(err)
+    except:
+        policy_status = None
 
     try:
         public_access_block = s3_client.get_public_access_block(Bucket=bucket_name)['PublicAccessBlockConfiguration']
-    except botocore.exceptions.ClientError as err:
-        log.error(err)
+    except:
+        public_access_block = None
 
     if policy_status == None and public_access_block == None: # 0
         return 'Objects can be public'

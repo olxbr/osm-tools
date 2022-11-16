@@ -6,7 +6,7 @@ build:
 	cd build && zip -qr ../lambda.zip .
 
 upload:
-	aws lambda update-function-code --function-name s3tools-lambda --zip-file fileb://lambda.zip --no-verify-ssl
+	aws lambda update-function-code --function-name s3tools-lambda --zip-file fileb://lambda.zip
 
 clean:
 	rm -r build
