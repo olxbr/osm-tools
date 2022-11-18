@@ -1,5 +1,6 @@
 import unittest
-from lambda_functions import lambda_handler, find_bucket, bucket_info, list_buckets
+from lambda_functions import (lambda_handler, find_bucket, bucket_info,
+    list_buckets, get_bucket, bucket_status, get_bucket_summary)
 
 
 class FakeS3Client:
@@ -22,6 +23,20 @@ class HandlerTest(unittest.TestCase):
         result = lambda_handler(self.fake_event, {})
         self.assertEqual(400, result['statusCode'])
         self.assertIn('missing account parameter', result['body'])
+
+
+class GetBucketTest(unittest.TestCase):
+
+    def setUp(self):
+        self.buckets = [{"Name": "bucket1"}, {"Name": "bucket2"}]
+
+    def test_get_bucket_returns_none(self):
+        bucket = get_bucket("bucket3", self.buckets)
+        self.assertEqual(bucket, None)
+
+    def test_get_bucket_returns_bucket(self):
+        bucket = get_bucket("bucket1", self.buckets)
+        self.assertEqual(bucket["Name"], "bucket1")
 
 
 class BucketStatusTest(unittest.TestCase):
@@ -58,7 +73,11 @@ class ListBucketsTest(unittest.TestCase):
 
 
 class BucketSymmaryTest(unittest.TestCase):
-    pass
+
+    def test_get_bucket_summary_missing_bucketName_parameter(self):
+        result = get_bucket_summary({})
+        self.assertEqual(400, result['statusCode'])
+        self.assertIn('missing bucketName parameter', result['body'])
 
 
 if __name__ == '__main__':
