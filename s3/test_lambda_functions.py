@@ -1,5 +1,5 @@
 import unittest
-from lambda_functions import (lambda_handler, find_bucket, bucket_info,
+from lambda_function import (lambda_handler, find_bucket, bucket_info,
     list_buckets, get_bucket, bucket_status, get_bucket_summary)
 
 

@@ -161,7 +161,7 @@ def list_buckets(s3_client, params):
                     'statusCode': 200,
                     'body': json.dumps({
                         'account': account,
-                        'updated_at': result.get('updated_at'),
+                        'updatedAt': result.get('updated_at'),
                         'buckets': buckets
                     })
                 }
@@ -178,7 +178,7 @@ def list_buckets(s3_client, params):
             'status': bucket_status(s3_client, bucket["Name"])
         })
 
-    updated_at = datetime.now().isoformat()
+    updated_at = datetime.utcnow().isoformat()
 
     try:
         result = dynamo_table.put_item(
@@ -195,7 +195,7 @@ def list_buckets(s3_client, params):
         'statusCode': 200,
         'body': json.dumps({
             'account': account,
-            'updated_at': updated_at,
+            'updatedAt': updated_at,
             'buckets': buckets
         })
     }
@@ -281,7 +281,7 @@ def put_bucket_summary(params, body):
         _ = dynamo_table.put_item(Item={
             'bucket': bucket_name,
             'account': account,
-            'updated_at': datetime.now().isoformat(),
+            'updated_at': datetime.utcnow().isoformat(),
             'review_status': review_status,
             'notes': notes
         })

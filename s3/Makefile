@@ -2,7 +2,7 @@
 
 build:
 	pip install -r requirements.txt -t build --upgrade
-	cp lambda_functions.py build
+	cp lambda_function.py build
 	cd build && zip -qr ../lambda.zip .
 
 upload:
