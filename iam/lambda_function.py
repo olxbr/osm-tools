@@ -14,8 +14,8 @@ IAM_SUMMARY_TABLE = os.getenv('IAM_SUMMARY_TABLE', 'osm_iam_role_summary')
 
 def list_roles(iam_client, params):
     account = params.get('account')
-
     mode = params.get('mode')
+
     if mode is None:
         return {
             'statusCode': 400,
@@ -35,7 +35,7 @@ def list_roles(iam_client, params):
                     'statusCode': 200,
                     'body': json.dumps({
                         'account': account,
-                        'updated_at': result.get('updated_at'),
+                        'updatedAt': result.get('updated_at'),
                         'roles': roles
                     })
                 }
@@ -54,13 +54,13 @@ def list_roles(iam_client, params):
     for role in roles:
         role['CreateDate'] = role['CreateDate'].isoformat()
 
-    updated_at = datetime.now().isoformat()
+    updated_at = datetime.utcnow().isoformat()
 
     try:
         result = dynamo_table.put_item(
             Item={
                 'account': account,
-                'updated_at': updated_at,
+                'updatedAt': updated_at,
                 'roles': json.dumps(roles)
             }
         )
@@ -71,8 +71,47 @@ def list_roles(iam_client, params):
         'statusCode': 200,
         'body': json.dumps({
             'account': account,
-            'updated_at': updated_at,
+            'updatedAt': updated_at,
             'roles': roles
+        })
+    }
+
+
+def get_role(iam_client, params):
+    role_name = params.get('roleName')
+
+    if role_name is None:
+        return {
+            'statusCode': 400,
+            'body': json.dumps({
+                'message': 'missing roleName parameter'
+            })
+        }
+
+    try:
+        result = iam_client.get_role(RoleName=role_name)
+        role = result.get('Role')
+    except iam_client.exceptions.NoSuchEntityException:
+        return {
+            'statusCode': 404,
+            'body': json.dumps({
+                'message': 'role not found'
+            })
+        }
+    except Exception as err:
+        msg = f'Get role fail: {err}'
+        log.error(msg)
+        return {
+            'statusCode': 500,
+            'body': json.dumps({
+                'message': msg
+            })
+        }
+
+    return {
+        'statusCode': 200,
+        'body': json.dumps({
+            'role': role
         })
     }
 
@@ -111,6 +150,8 @@ def lambda_handler(event, context):
 
     if fn == 'list-roles':
         return list_roles(iam_client, params)
+    if fn == 'get-role':
+        return get_role(iam_client, params)
 
     return {
         'statusCode': 404,
