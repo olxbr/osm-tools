@@ -178,7 +178,7 @@ def list_buckets(s3_client, params):
             'status': bucket_status(s3_client, bucket["Name"])
         })
 
-    updated_at = datetime.utcnow().isoformat()
+    updated_at = datetime.utcnow().astimezone().isoformat()
 
     try:
         result = dynamo_table.put_item(

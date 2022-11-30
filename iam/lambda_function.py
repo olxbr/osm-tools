@@ -3,13 +3,20 @@ import json
 import logging
 import boto3
 from boto3.dynamodb.conditions import Key
-from datetime import datetime
+from datetime import datetime, date
 
 log = logging.getLogger(__name__)
 TRUST_ROLE_NAME = os.getenv('TRUST_ROLE_NAME', 'org-osm-api')
 DEFAULT_REGION = os.getenv('DEFAULT_REGION', 'us-east-1')
 IAM_ROLES_TABLE = os.getenv('IAM_ROLES_TABLE', 'osm_iam_account_roles')
 IAM_SUMMARY_TABLE = os.getenv('IAM_SUMMARY_TABLE', 'osm_iam_role_summary')
+
+
+def serialize(obj):
+    if isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+
+    raise TypeError ("Type %s not serializable" % type(obj))
 
 
 def list_roles(iam_client, params):
@@ -35,7 +42,7 @@ def list_roles(iam_client, params):
                     'statusCode': 200,
                     'body': json.dumps({
                         'account': account,
-                        'updatedAt': result.get('updated_at'),
+                        'updatedAt': result.get('updatedAt'),
                         'roles': roles
                     })
                 }
@@ -51,17 +58,14 @@ def list_roles(iam_client, params):
         roles = roles + result.get('Roles', [])
         marker = result.get('Marker')
 
-    for role in roles:
-        role['CreateDate'] = role['CreateDate'].isoformat()
-
-    updated_at = datetime.utcnow().isoformat()
+    updated_at = datetime.utcnow().astimezone().isoformat()
 
     try:
         result = dynamo_table.put_item(
             Item={
                 'account': account,
                 'updatedAt': updated_at,
-                'roles': json.dumps(roles)
+                'roles': json.dumps(roles, default=serialize)
             }
         )
     except Exception as err:
@@ -73,7 +77,7 @@ def list_roles(iam_client, params):
             'account': account,
             'updatedAt': updated_at,
             'roles': roles
-        })
+        }, default=serialize)
     }
 
 
