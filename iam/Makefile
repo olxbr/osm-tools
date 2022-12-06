@@ -1,12 +1,14 @@
 .PHONY: build upload clean deploy test
 
+function := osm-iam-tools-lambda
+
 build:
 	pip install -r requirements.txt -t build --upgrade
 	cp lambda_function.py build
 	cd build && zip -qr ../lambda.zip .
 
 upload:
-	aws lambda update-function-code --function-name osm-iam-tools-lambda --zip-file fileb://lambda.zip
+	aws lambda update-function-code --function-name $(function) --zip-file fileb://lambda.zip
 
 clean:
 	rm -r build

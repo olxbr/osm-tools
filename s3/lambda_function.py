@@ -3,13 +3,20 @@ import json
 import logging
 import boto3
 from boto3.dynamodb.conditions import Key
-from datetime import datetime
+from datetime import datetime, date
 
 log = logging.getLogger(__name__)
 TRUST_ROLE_NAME = os.getenv('TRUST_ROLE_NAME', 'org-osm-api')
 DEFAULT_REGION = os.getenv('DEFAULT_REGION', 'us-east-1')
 S3_BUCKETS_TABLE = os.getenv('S3_BUCKETS_TABLE', 'osm_s3_account_buckets')
 S3_SUMMARY_TABLE = os.getenv('S3_SUMMARY_TABLE', 'osm_s3_bucket_summary')
+
+
+def serialize(obj):
+    if isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+
+    raise TypeError ("Type %s not serializable" % type(obj))
 
 
 def get_bucket(name, bucket_list):
@@ -174,8 +181,8 @@ def list_buckets(s3_client, params):
     for bucket in response.get("Buckets", []):
         buckets.append({
             'name': bucket["Name"],
-            'creation_date': bucket["CreationDate"].isoformat(),
-            'status': bucket_status(s3_client, bucket["Name"])
+            'creation_date': bucket["CreationDate"].isoformat()
+            # 'status': bucket_status(s3_client, bucket["Name"])
         })
 
     updated_at = datetime.utcnow().astimezone().isoformat()
