@@ -11,6 +11,11 @@ Lambda for OSM API with some AWS S3 Tools
 
 Manage IAM roles and policies
 
+## EC2
+
+EC2 Tools
+
 ## Config
 
-Main OSM config lambda to handle general application behavior
+Main OSM config lambda to handle general application data and behavior
+
