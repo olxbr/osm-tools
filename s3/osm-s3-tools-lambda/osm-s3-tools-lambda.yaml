@@ -3,11 +3,11 @@ AWSTemplateFormatVersion: "2010-09-09"
 Parameters:
   LambdaName:
     Type: String
-    Default: osm-s3tools-lambda
+    Default: osm-s3-tools-lambda
     Description: Lambda name
   LambdaRoleName:
     Type: String
-    Default: osm-s3tools-lambda-role
+    Default: osm-s3-tools-lambda-role
     Description: Lambda role name
   TrustRoleName:
     Type: String

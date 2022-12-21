@@ -123,18 +123,25 @@ def bucket_info(s3_client, params):
         }
 
     response = s3_client.list_buckets()
-    bucket = get_bucket(bucket_name, response.get("Buckets", []))
-    info = {'name': bucket_name}
+    bucket = get_bucket(bucket_name, response.get('Buckets', []))
+    info = {
+        'name': bucket_name,
+        'policy': '',
+        'tags': []
+    }
 
     if bucket:
-        info['creation_date'] = bucket["CreationDate"].isoformat()
-        info["public_status"] = bucket_status(s3_client, bucket_name)
+        info['creation_date'] = bucket['CreationDate'].isoformat()
+        info['public_status'] = bucket_status(s3_client, bucket_name)
 
         try:
-            policy = s3_client.get_bucket_policy(Bucket=bucket_name)
-            info['policy'] = policy['Policy']
+            info['policy'] = s3_client.get_bucket_policy(Bucket=bucket_name).get('Policy', '')
         except Exception as err:
-            info["policy"] = ""
+            log.error(err)
+
+        try:
+            info['tags'] = s3_client.get_bucket_tagging(Bucket=bucket_name).get('TagSet', [])
+        except Exception as err:
             log.error(err)
 
     return {
@@ -271,27 +278,31 @@ def put_bucket_summary(params, body):
 
     body = json.loads(body)
     bucket_name = body.get('bucketName')
-    review_status = body.get('reviewStatus')
+    compliance = body.get('compliance')
     notes = body.get('notes', '')
 
-    if bucket_name is None or review_status is None:
+    if bucket_name is None or compliance is None:
         return {
             'statusCode': 400,
             'body': json.dumps({
-                'message': 'missing parameters (bucketName, reviewStatus)'
+                'message': 'missing parameters (bucketName, compliance)'
             })
         }
 
     dynamo_table = boto3.resource('dynamodb').Table(S3_SUMMARY_TABLE)
 
     try:
-        _ = dynamo_table.put_item(Item={
-            'bucket': bucket_name,
-            'account': account,
-            'updated_at': datetime.utcnow().isoformat(),
-            'review_status': review_status,
-            'notes': notes
-        })
+        _ = dynamo_table.update_item(
+            Key={"bucket": bucket_name},
+            UpdateExpression="set account=:a, compliance=:c, notes=:n, updated_at=:u",
+            ExpressionAttributeValues={
+                ":a": account,
+                ":c": compliance,
+                ":n": notes,
+                ":u": datetime.utcnow().astimezone().isoformat()
+            },
+            ReturnValues="UPDATED_NEW"
+        )
         return {
             'statusCode': 200,
             'body': json.dumps({'message': 'success'})
