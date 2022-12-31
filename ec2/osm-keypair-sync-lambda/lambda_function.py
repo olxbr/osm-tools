@@ -39,4 +39,4 @@ def lambda_handler(event, context):
         except Exception as err:
             log.error(f'DynamoDB delete_item error: {err}')
 
-    print(f'Event: {event_name}, Keypair: {key_name}.')
+    print(f'Event: {event_name}, keyName: {key_name}, account: {account}')
