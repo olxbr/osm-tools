@@ -94,6 +94,7 @@ def lambda_handler(event, context):
         tags = []
         log.error(f'get_bucket_tagging error: {err}')
 
+    current_date = datetime.utcnow().astimezone().isoformat()
     update_exp = "set creation_date=:cd, account=:a, policy=:p, public_status=:ps, tags=:t, updated_at=:u"
     attr_values = {
         ":cd": bucket.creation_date.isoformat(),
@@ -101,20 +102,28 @@ def lambda_handler(event, context):
         ":p": policy,
         ":ps": public_status,
         ":t": tags,
-        ":u": datetime.utcnow().astimezone().isoformat()
+        ":u": current_date
     }
 
     if event_name == 'DeleteBucket':
-        update_exp = "set deleted=:d"
-        attr_values = {":d": True}
+        update_exp = "set deleted=:d, updated_at=:u"
+        attr_values = {
+            ":d": True,
+            ":u": current_date
+        }
 
     dynamo_table = boto3.resource('dynamodb').Table(S3_SUMMARY_TABLE)
 
-    _ = dynamo_table.update_item(
-        Key={"bucket": bucket_name},
-        UpdateExpression=update_exp,
-        ExpressionAttributeValues=attr_values,
-        ReturnValues="UPDATED_NEW"
-    )
+    try:
+        _ = dynamo_table.update_item(
+            Key={"bucket": bucket_name},
+            UpdateExpression=update_exp,
+            ExpressionAttributeValues=attr_values,
+            ReturnValues="UPDATED_NEW"
+        )
+    except Exception as err:
+        log.error(f'update_item error: {err}')
+        print(f'Error: bucket {bucket_name} not updated! Event: {event_name}')
+        return
 
     print(f'Bucket {bucket_name} updated. Event: {event_name}')
