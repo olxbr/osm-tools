@@ -3,7 +3,7 @@
 function := osm-ec2-tools-lambda
 
 build:
-	pip install -r requirements.txt -t build --upgrade
+	python3 -m pip install -r requirements.txt -t build --upgrade
 	cp lambda_function.py build
 	cd build && zip -qr ../lambda.zip .
 
@@ -17,4 +17,4 @@ clean:
 deploy: build upload clean
 
 test:
-	python -m unittest discover
+	python3 -m unittest discover
