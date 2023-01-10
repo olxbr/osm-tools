@@ -9,16 +9,9 @@ KEYPAIRS_TABLE = os.getenv('KEYPAIRS_TABLE', 'osm_ec2_keypairs')
 
 
 def lambda_handler(event, context):
-    params = event.get('queryStringParameters')
-    if params is None:
-        return {
-            'statusCode': 400,
-            'body': json.dumps({
-                'message': 'missing parameters'
-            })
-        }
+    body = json.loads(event.get('body', '{}'))
+    fingerprint = body.get('fingerprint')
 
-    fingerprint = params.get('fingerprint')
     if fingerprint is None:
         return {
             'statusCode': 400,
