@@ -1,0 +1,61 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Resources:
+  ScanSchedulerManagedPolicy:
+    Type: "AWS::IAM::ManagedPolicy"
+    Properties:
+      ManagedPolicyName: "scan-scheduler-ssm-exec-policy"
+      Path: /
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: ssm:SendCommand
+            Resource:
+              - arn:aws:ssm:*:*:document/*
+              - arn:aws:ec2:*:*:instance/*
+
+  ScanSchedulerRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      Path: /
+      RoleName: "scan-scheduler-ssm-exec-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect": Allow
+            Principal:
+              Service": scheduler.amazonaws.com
+            Action: "sts:AssumeRole"
+      MaxSessionDuration: 3600
+      ManagedPolicyArns:
+        - !Ref ScanSchedulerManagedPolicy
+
+  ScanScheduler:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      Name: osm-keypair-scan-scheduler
+      Description: Scan for ec2 keypairs every monday at 2am
+      FlexibleTimeWindow:
+        Mode: OFF
+      ScheduleExpression: cron(0 21 ? * MON *)
+      ScheduleExpressionTimezone: America/Sao_Paulo
+      Target:
+        Arn: arn:aws:scheduler:::aws-sdk:ssm:sendCommand
+        RoleArn: !GetAtt ScanSchedulerRole.Arn
+        RetryPolicy:
+          MaximumEventAgeInSeconds: 86400
+          MaximumRetryAttempts: 0
+        Input:
+          DocumentName: AWS-RunShellScript
+          Parameters:
+            Commands:
+              - 'echo "<base64-encoded-script>" | base64 -d > private_key_finder.sh'
+              - "chmod +x private_key_finder.sh"
+              - "find / \\( -path /proc -o -path /dev -o -path /sys -o -path /run -o -path /cgroup -o -path /var/lib/lxcfs/cgroup -o -path /var/lib/fwupd/pki -o -path /etc/pki/tls/certs -o -path /var/lib/docker/containers -o -path /var/lib/docker/volumes -o -path /srv/kubernetes -o -path /var/lib/kubelet -o -path /etc/kubernetes -o -path /var/lib/docker/overlay2 -o -path /etc/ssh -o -path /var/opt/tableau \\) -prune -o -type f -exec ./private_key_finder.sh {} \\;"
+              - "rm private_key_finder.sh"
+          Targets:
+            - Key: tag:env
+              Values:
+                - prod
+                - production
