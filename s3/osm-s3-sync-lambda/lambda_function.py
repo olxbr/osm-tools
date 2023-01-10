@@ -86,13 +86,11 @@ def lambda_handler(event, context):
         policy = client.get_bucket_policy(Bucket=bucket_name).get('Policy', '')
     except Exception as err:
         policy = ''
-        log.error(f'get_bucket_policy error: {err}')
 
     try:
         tags = client.get_bucket_tagging(Bucket=bucket_name).get('TagSet', [])
     except Exception as err:
         tags = []
-        log.error(f'get_bucket_tagging error: {err}')
 
     current_date = datetime.utcnow().astimezone().isoformat()
     update_exp = "set creation_date=:cd, account=:a, policy=:p, public_status=:ps, tags=:t, updated_at=:u"
@@ -124,6 +122,6 @@ def lambda_handler(event, context):
     except Exception as err:
         log.error(f'update_item error: {err}')
         print(f'Error: bucket {bucket_name} not updated! Event: {event_name}')
-        return
+        raise err
 
     print(f'Bucket {bucket_name} updated. Event: {event_name}')
