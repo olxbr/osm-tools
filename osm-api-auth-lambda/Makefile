@@ -1,6 +1,6 @@
-.PHONY: build upload clean deploy test
+.PHONY: deploy test
 
-function := osm-s3-sync-lambda
+function := osm-api-auth-lambda
 
 deploy:
 	zip -q lambda.zip lambda_function.py

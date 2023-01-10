@@ -2,19 +2,10 @@
 
 function := osm-iam-tools-lambda
 
-build:
-	pip install -r requirements.txt -t build --upgrade
-	cp lambda_function.py build
-	cd build && zip -qr ../lambda.zip .
-
-upload:
+deploy:
+	zip -q lambda.zip lambda_function.py
 	aws lambda update-function-code --function-name $(function) --zip-file fileb://lambda.zip
-
-clean:
-	rm -r build
 	rm lambda.zip
 
-deploy: build upload clean
-
 test:
-	python -m unittest discover
+	python3 -m unittest discover
