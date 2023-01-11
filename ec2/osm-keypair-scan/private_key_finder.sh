@@ -24,8 +24,8 @@ if command -v openssl &>/dev/null; then
     md5=$(openssl rsa -in "$filename" -pubout -outform DER 2>/dev/null | openssl md5 -c)
 fi
 
-instance = $(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | grep '"instanceId"' | cut -d\" -f4)
-account = $(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | grep '"accountId"' | cut -d\" -f4)
+instance=$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | grep '"instanceId"' | cut -d\" -f4)
+account=$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | grep '"accountId"' | cut -d\" -f4)
 
 json_data='{
    "filename": "'"$filename"'",

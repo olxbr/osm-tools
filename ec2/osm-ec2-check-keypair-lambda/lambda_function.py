@@ -46,11 +46,15 @@ def lambda_handler(event, context):
 
     try:
         item = {
-            'account': account,
-            'instance': instance,
             'filename': filename,
             'scan_date': datetime.utcnow().astimezone().isoformat()
         }
+
+        if account != '':
+            item['account'] = account
+
+        if instance != '':
+            item['instance'] = instance
 
         if found:
             item['found_fingerprint'] = found_fingerprint

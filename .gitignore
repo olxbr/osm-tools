@@ -8,3 +8,4 @@ TODO.md
 venv/
 run.py
 put_keypairs_profiles_done
+template-tmp.yaml
