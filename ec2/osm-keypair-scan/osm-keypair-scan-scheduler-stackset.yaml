@@ -35,7 +35,7 @@ Resources:
     Type: AWS::Scheduler::Schedule
     Properties:
       Name: osm-keypair-scan-scheduler
-      Description: Scan for ec2 keypairs every monday at 2am
+      Description: Scan for ec2 keypairs every monday at 9pm
       FlexibleTimeWindow:
         Mode: OFF
       ScheduleExpression: cron(0 21 ? * MON *)
@@ -55,7 +55,6 @@ Resources:
               - "find / \\( -path /proc -o -path /dev -o -path /sys -o -path /run -o -path /cgroup -o -path /var/lib/lxcfs/cgroup -o -path /var/lib/fwupd/pki -o -path /etc/pki/tls/certs -o -path /var/lib/docker/containers -o -path /var/lib/docker/volumes -o -path /srv/kubernetes -o -path /var/lib/kubelet -o -path /etc/kubernetes -o -path /var/lib/docker/overlay2 -o -path /etc/ssh -o -path /var/opt/tableau \\) -prune -o -type f -exec ./private_key_finder.sh {} \\;"
               - "rm private_key_finder.sh"
           Targets:
-            - Key: tag:env
+            - Key: tag-key
               Values:
-                - prod
-                - production
+                - cloud-cost-center
