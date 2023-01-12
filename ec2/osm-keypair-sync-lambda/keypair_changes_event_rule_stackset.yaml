@@ -1,0 +1,27 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+  MainEventBusArn:
+    Type: String
+    Default: ''
+    Description: Main event bus arn
+
+Resources:
+  EventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Watches for keypairs creation/deletion
+      EventBusName: default
+      EventPattern:
+        detail:
+          eventName:
+            - CreateKeyPair
+            - DeleteKeyPair
+        detail-type:
+          - AWS API Call via CloudTrail
+      Name: osm-keypair-changes
+      State: ENABLED
+      Targets:
+        - Id: OsmMainEventBus
+          Arn: !Ref MainEventBusArn
+          RoleArn: !Sub arn:aws:iam::${AWS::AccountId}:role/osm-keypair-changes-invoke-event-bus-role

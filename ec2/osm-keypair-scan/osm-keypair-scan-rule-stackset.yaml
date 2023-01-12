@@ -1,16 +1,11 @@
 AWSTemplateFormatVersion: "2010-09-09"
 
-Resources:
-  ScanScheduler:
-    Type: AWS::Scheduler::Schedule
+  ScanSchedulerRule:
+    Type: AWS::Events::Rule
     Properties:
-      Name: osm-keypair-scan-scheduler
-      Description: Scan for ec2 keypairs every monday at 9pm
-      FlexibleTimeWindow:
-        Mode: FLEXIBLE
-        MaximumWindowInMinutes: 15
-      ScheduleExpression: cron(0 21 ? * MON *)
-      ScheduleExpressionTimezone: America/Sao_Paulo
+      Name: osm-keypair-scan-scheduler-rule
+      Description: Scan for ec2 keypairs every monday at 11pm (UTC)
+      ScheduleExpression: cron(0 23 ? * MON *)
       Target:
         Arn: arn:aws:scheduler:::aws-sdk:ssm:sendCommand
         RoleArn: !Sub arn:aws:iam::${AWS::AccountId}:role/scan-scheduler-ssm-exec-role

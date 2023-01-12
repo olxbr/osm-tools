@@ -1,0 +1,22 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: EventBridge Rule, SNS Topic and SQS Queue to sync EC2 keypairs with OSM
+
+Parameters:
+  EventRuleName:
+    Type: String
+    Default: osm-keypair-changes
+    Description: Rule name
+
+Resources:
+  KeypairChangesTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: osm-keypair-changes-topic
+      # TODO
+
+  KeypairChangesQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: osm-keypair-changes-queue
+      # TODO

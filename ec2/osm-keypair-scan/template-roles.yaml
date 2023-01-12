@@ -1,0 +1,32 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Resources:
+  ScanSchedulerManagedPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: scan-scheduler-ssm-exec-policy
+      Path: /
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: ssm:SendCommand
+            Resource:
+              - arn:aws:ssm:*:*:document/*
+              - arn:aws:ec2:*:*:instance/*
+
+  ScanSchedulerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      RoleName: scan-scheduler-ssm-exec-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: scheduler.amazonaws.com
+            Action: sts:AssumeRole
+      MaxSessionDuration: 3600
+      ManagedPolicyArns:
+        - !Ref ScanSchedulerManagedPolicy

@@ -1,0 +1,60 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+  EventRuleName:
+    Type: String
+    Default: osm-bucket-changes
+    Description: Rule name
+  MainEventBusArn:
+    Type: String
+    Default: ''
+    Description: Main event bus arn
+
+Resources:
+  EventRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${EventRuleName}-invoke-event-bus-role
+      Path: /
+      Policies:
+        - PolicyName: default
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - events:PutEvents
+                Resource: !Ref MainEventBusArn
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sts:AssumeRole
+
+  EventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Watches for bucket change events
+      EventBusName: default
+      EventPattern:
+        detail:
+          eventName:
+            - CreateBucket
+            - DeleteBucket
+            - DeleteBucketPolicy
+            - DeleteBucketTagging
+            - DeleteBucketPublicAccessBlock
+            - PutBucketAcl
+            - PutBucketPolicy
+            - PutBucketTagging
+            - PutBucketPublicAccessBlock
+        detail-type:
+          - AWS API Call via CloudTrail
+      Name: !Ref EventRuleName
+      State: ENABLED
+      Targets:
+        - Id: OsmMainEventBus
+          Arn: !Ref MainEventBusArn
+          RoleArn: !GetAtt EventRole.Arn

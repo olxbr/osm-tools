@@ -1,0 +1,47 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: EventBridge Rule, SNS Topic and SQS Queue to sync S3 buckets with OSM
+
+Parameters:
+  EventRuleName:
+    Type: String
+    Default: osm-bucket-changes
+    Description: Rule name
+
+Resources:
+  BucketChangesTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: osm-bucket-changes-topic
+      # TODO
+
+  BucketChangesQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: osm-bucket-changes-queue
+      # TODO
+
+  BucketChangesEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Watches for bucket change events
+      EventBusName: default
+      EventPattern:
+        detail:
+          eventName:
+            - CreateBucket
+            - DeleteBucket
+            - DeleteBucketPolicy
+            - DeleteBucketTagging
+            - DeleteBucketPublicAccessBlock
+            - PutBucketAcl
+            - PutBucketPolicy
+            - PutBucketTagging
+            - PutBucketPublicAccessBlock
+        detail-type:
+          - AWS API Call via CloudTrail
+      Name: osm-bucket-changes
+      State: ENABLED
+      Targets:
+        - Id: OsmSnsBucketChangesTopic
+          Arn: !GetAtt BucketChangesTopic.Arn

@@ -1,0 +1,30 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+  MainEventBusArn:
+    Type: String
+    Default: ''
+    Description: Main event bus arn
+
+Resources:
+  EventRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: osm-keypair-changes-invoke-event-bus-role
+      Path: /
+      Policies:
+        - PolicyName: default
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - events:PutEvents
+                Resource: !Ref MainEventBusArn
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sts:AssumeRole
