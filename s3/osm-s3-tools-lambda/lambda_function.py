@@ -189,7 +189,6 @@ def list_buckets(s3_client, params):
         buckets.append({
             'name': bucket["Name"],
             'creation_date': bucket["CreationDate"].isoformat()
-            # 'status': bucket_status(s3_client, bucket["Name"])
         })
 
     updated_at = datetime.utcnow().astimezone().isoformat()

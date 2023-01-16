@@ -7,6 +7,7 @@ from datetime import datetime, date
 log = logging.getLogger(__name__)
 TRUST_ROLE_NAME = os.getenv('TRUST_ROLE_NAME', 'org-osm-api')
 DEFAULT_REGION = os.getenv('DEFAULT_REGION', 'us-east-1')
+KEYPAIRS_SUMMARY_TABLE = os.getenv('KEYPAIRS_TABLE', 'osm_ec2_keypairs_summary')
 
 
 def serialize(obj):
@@ -54,11 +55,32 @@ def find_instance(ec2_client, params):
     }
 
 
+def keypair_audit(params):
+    summary_table = boto3.resource('dynamodb').Table(KEYPAIRS_SUMMARY_TABLE)
+    try:
+        result = summary_table.scan()
+        return {
+            'statusCode': 200,
+            'body': json.dumps({
+                'keypairs': result.get('Items', []),
+                'total': result.get('Count')
+            }, default=serialize)
+        }
+    except Exception as err:
+        log.error(err)
+
+    return {
+        'statusCode': 404,
+        'body': json.dumps({
+            'keypairs': [],
+            'total': 0
+        })
+    }
+
+
 def lambda_handler(event, context):
     params = event.get('queryStringParameters')
     account = params.get('account')
-    # http_method = event['requestContext']['http']['method']
-    # body = event.get('body')
 
     if account is None:
         return {
@@ -88,6 +110,8 @@ def lambda_handler(event, context):
 
     if fn == 'find-instance':
         return find_instance(ec2_client, params)
+    if fn == 'keypair-audit':
+        return keypair_audit(params)
 
     return {
         'statusCode': 404,
