@@ -2,7 +2,7 @@ import os
 import json
 import logging
 import boto3
-from boto3.dynamodb.conditions import Key
+from boto3.dynamodb.conditions import Key, Attr
 from datetime import datetime, date
 
 log = logging.getLogger(__name__)
@@ -315,13 +315,46 @@ def put_bucket_summary(params, body):
         }
 
 
+def get_compliance_data():
+    dynamo_table = boto3.resource('dynamodb').Table(S3_SUMMARY_TABLE)
+
+    try:
+        yes_response = dynamo_table.scan(
+            Select='COUNT',
+            FilterExpression=Attr('compliance').eq('yes'))
+        no_response = dynamo_table.scan(
+            Select='COUNT',
+            FilterExpression=Attr('compliance').eq('no'))
+        return {
+            'statusCode': 200,
+            'body': json.dumps({
+                'inCompliance': yes_response.get('Count'),
+                'notInCompliance': no_response.get('Count')
+            })
+        }
+    except Exception as err:
+        log.error(err)
+
+    return {
+        'statusCode': 200,
+        'body': json.dumps({
+            'inCompliance': 0,
+            'notInCompliance': 0
+        })
+    }
+
+
 def lambda_handler(event, context):
     http_method = event['requestContext']['http']['method']
     params = event.get('queryStringParameters')
     body = event.get('body')
-
     account = params.get('account')
-    if account is None:
+    fn = params.get('fn')
+
+    if not account:
+        if fn == 'get-compliance-data':
+            return get_compliance_data()
+
         return {
             'statusCode': 400,
             'body': json.dumps({
@@ -344,8 +377,6 @@ def lambda_handler(event, context):
         aws_session_token=credentials['SessionToken'],
         region_name=DEFAULT_REGION
     )
-
-    fn = params.get('fn')
 
     if fn == 'find-bucket':
         return find_bucket(s3_client, params)

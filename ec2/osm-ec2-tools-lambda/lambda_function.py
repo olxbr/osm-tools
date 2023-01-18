@@ -62,7 +62,7 @@ def keypair_audit(params):
         return {
             'statusCode': 200,
             'body': json.dumps({
-                'keypairs': result.get('Items', []),
+                'data': result.get('Items', []),
                 'total': result.get('Count')
             }, default=serialize)
         }
@@ -72,7 +72,7 @@ def keypair_audit(params):
     return {
         'statusCode': 404,
         'body': json.dumps({
-            'keypairs': [],
+            'data': [],
             'total': 0
         })
     }
@@ -81,8 +81,12 @@ def keypair_audit(params):
 def lambda_handler(event, context):
     params = event.get('queryStringParameters')
     account = params.get('account')
+    fn = params.get('fn')
 
-    if account is None:
+    if not account:
+        if fn == 'keypair-audit':
+            return keypair_audit(params)
+
         return {
             'statusCode': 400,
             'body': json.dumps({
@@ -106,12 +110,8 @@ def lambda_handler(event, context):
         region_name=DEFAULT_REGION
     )
 
-    fn = params.get('fn')
-
     if fn == 'find-instance':
         return find_instance(ec2_client, params)
-    if fn == 'keypair-audit':
-        return keypair_audit(params)
 
     return {
         'statusCode': 404,
