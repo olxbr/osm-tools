@@ -176,7 +176,8 @@ def list_buckets(s3_client, params):
                     'body': json.dumps({
                         'account': account,
                         'updatedAt': result.get('updated_at'),
-                        'buckets': buckets
+                        'buckets': buckets,
+                        'total': len(buckets)
                     })
                 }
         except Exception as err:
@@ -198,7 +199,8 @@ def list_buckets(s3_client, params):
             Item={
                 'account': account,
                 'updated_at': updated_at,
-                'buckets': json.dumps(buckets)
+                'buckets': json.dumps(buckets),
+                'total': len(buckets)
             }
         )
     except Exception as err:
@@ -209,7 +211,8 @@ def list_buckets(s3_client, params):
         'body': json.dumps({
             'account': account,
             'updatedAt': updated_at,
-            'buckets': buckets
+            'buckets': buckets,
+            'total': len(buckets)
         })
     }
 
