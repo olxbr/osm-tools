@@ -319,31 +319,54 @@ def put_bucket_summary(params, body):
 
 
 def get_compliance_data():
-    dynamo_table = boto3.resource('dynamodb').Table(S3_SUMMARY_TABLE)
+    buckets_table = boto3.resource('dynamodb').Table(S3_BUCKETS_TABLE)
+    summary_table = boto3.resource('dynamodb').Table(S3_SUMMARY_TABLE)
+
+    result = {
+        'inCompliance': 0,
+        'notInCompliance': 0,
+        'withoutReview': 0,
+        'total': 0
+    }
 
     try:
-        yes_response = dynamo_table.scan(
-            Select='COUNT',
-            FilterExpression=Attr('compliance').eq('yes'))
-        no_response = dynamo_table.scan(
-            Select='COUNT',
-            FilterExpression=Attr('compliance').eq('no'))
-        return {
-            'statusCode': 200,
-            'body': json.dumps({
-                'inCompliance': yes_response.get('Count'),
-                'notInCompliance': no_response.get('Count')
-            })
-        }
+        items = buckets_table.scan(AttributesToGet=['total']).get('Items', [])
+        for i in items:
+            result['total'] += int(i['total'])
     except Exception as err:
         log.error(err)
+        return {
+            'statusCode': 500,
+            'body': json.dumps({
+                'error': 'error getting total buckets'
+            })
+        }
+
+    try:
+        yes = summary_table.scan(Select='COUNT',
+            FilterExpression=Attr('compliance').eq('yes'))
+        result['inCompliance'] = yes.get('Count')
+
+        no = summary_table.scan(Select='COUNT',
+            FilterExpression=Attr('compliance').eq('no'))
+        result['notInCompliance'] = no.get('Count')
+    except Exception as err:
+        log.error(err)
+        return {
+            'statusCode': 500,
+            'body': json.dumps({
+                'error': 'error getting compliance data'
+            })
+        }
+
+
+    result['withoutReview'] = (
+        result['total'] - (result['inCompliance'] + result['notInCompliance'])
+    )
 
     return {
         'statusCode': 200,
-        'body': json.dumps({
-            'inCompliance': 0,
-            'notInCompliance': 0
-        })
+        'body': json.dumps(result)
     }
 
 
