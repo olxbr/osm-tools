@@ -343,13 +343,23 @@ def get_compliance_data():
         }
 
     try:
-        yes = summary_table.scan(Select='COUNT',
-            FilterExpression=Attr('compliance').eq('yes'))
-        result['inCompliance'] = yes.get('Count')
+        res = summary_table.scan(AttributesToGet=['compliance'])
+        items = res.get('Items')
 
-        no = summary_table.scan(Select='COUNT',
-            FilterExpression=Attr('compliance').eq('no'))
-        result['notInCompliance'] = no.get('Count')
+        while res.get('LastEvaluatedKey'):
+            res = summary_table.scan(
+                AttributesToGet=['compliance'],
+                ExclusiveStartKey=res['LastEvaluatedKey'])
+            items.extend(res['Items'])
+
+        result['inCompliance'] = len(
+            [i for i in items if i.get('compliance') == 'yes'])
+
+        result['notInCompliance'] = len(
+            [i for i in items if i.get('compliance') == 'no'])
+
+        result['withoutReview'] = len(
+            [i for i in items if not i.get('compliance') or i.get('compliance') == ''])
     except Exception as err:
         log.error(err)
         return {
@@ -358,11 +368,6 @@ def get_compliance_data():
                 'error': 'error getting compliance data'
             })
         }
-
-
-    result['withoutReview'] = (
-        result['total'] - (result['inCompliance'] + result['notInCompliance'])
-    )
 
     return {
         'statusCode': 200,
