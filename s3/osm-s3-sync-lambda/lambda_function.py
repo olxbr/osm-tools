@@ -105,10 +105,11 @@ def lambda_handler(event, context):
 
     if event_name == 'DeleteBucket':
         update_exp = "set deleted=:d, updated_at=:u"
-        attr_values = {
-            ":d": True,
-            ":u": current_date
-        }
+        attr_values = {":d": True, ":u": current_date}
+
+    if event_name in ['PutBucketPolicy', 'DeleteBucketPolicy']:
+        update_exp = "set modified=:m, updated_at=:u"
+        attr_values = {":m": True, ":u": current_date}
 
     dynamo_table = boto3.resource('dynamodb').Table(S3_SUMMARY_TABLE)
 
