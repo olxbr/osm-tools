@@ -296,11 +296,12 @@ def put_bucket_summary(params, body):
     try:
         _ = dynamo_table.update_item(
             Key={"bucket": bucket_name},
-            UpdateExpression="set account=:a, compliance=:c, notes=:n, updated_at=:u",
+            UpdateExpression="set account=:a, compliance=:c, notes=:n, modified=:m, updated_at=:u",
             ExpressionAttributeValues={
                 ":a": account,
                 ":c": compliance,
                 ":n": notes,
+                ":m": False,
                 ":u": datetime.utcnow().astimezone().isoformat()
             },
             ReturnValues="UPDATED_NEW"
@@ -326,6 +327,8 @@ def get_compliance_data():
         'inCompliance': 0,
         'notInCompliance': 0,
         'withoutReview': 0,
+        'deleted': 0,
+        'modified': 0,
         'total': 0
     }
 
@@ -343,23 +346,31 @@ def get_compliance_data():
         }
 
     try:
-        res = summary_table.scan(AttributesToGet=['compliance'])
+        res = summary_table.scan(AttributesToGet=['compliance', 'deleted', 'modified'])
         items = res.get('Items')
 
         while res.get('LastEvaluatedKey'):
             res = summary_table.scan(
-                AttributesToGet=['compliance'],
+                AttributesToGet=['compliance', 'deleted', 'modified'],
                 ExclusiveStartKey=res['LastEvaluatedKey'])
             items.extend(res['Items'])
 
-        result['inCompliance'] = len(
-            [i for i in items if i.get('compliance') == 'yes'])
+        result['inCompliance'] = len(list(
+            filter(lambda i: i.get('compliance') == 'yes', items)))
 
-        result['notInCompliance'] = len(
-            [i for i in items if i.get('compliance') == 'no'])
+        result['notInCompliance'] = len(list(
+            filter(lambda i: i.get('compliance') == 'no', items)))
 
-        result['withoutReview'] = len(
-            [i for i in items if not i.get('compliance') or i.get('compliance') == ''])
+        result['withoutReview'] = len(list(
+            filter(lambda i: not i.get('compliance') or
+                                 i.get('compliance') == '', items)))
+
+        result['deleted'] = len(list(
+            filter(lambda i: i.get('deleted') == True, items)))
+
+        result['modified'] = len(list(
+            filter(lambda i: i.get('modified') == True, items)))
+
     except Exception as err:
         log.error(err)
         return {
