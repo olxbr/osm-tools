@@ -1,11 +1,11 @@
+*.pyc
 .DS_Store
 .venv/
-*.pyc
 build/
 lambda.zip
+put_keypairs_profiles_done
+template-tmp.yaml
+tmp/
 TODO
 TODO.md
 venv/
-run.py
-put_keypairs_profiles_done
-template-tmp.yaml
