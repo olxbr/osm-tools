@@ -1,5 +1,6 @@
 import os
 import json
+import socket
 import logging
 import boto3
 from datetime import datetime, date
@@ -17,9 +18,11 @@ def serialize(obj):
     raise TypeError ("Type %s not serializable" % type(obj))
 
 
-def find_instance(ec2_client, params):
+def find_instance(credentials, params):
     ip = params.get('ip')
     ip_type = params.get('ipType', 'public')
+
+    ec2_cli = boto3.client('ec2', **credentials)
 
     if ip is None:
         return {
@@ -40,7 +43,7 @@ def find_instance(ec2_client, params):
     instances = []
 
     try:
-        response = ec2_client.describe_instances(Filters=[filters])
+        response = ec2_cli.describe_instances(Filters=[filters])
         reservations = response['Reservations']
         if len(reservations) > 0:
             instances = reservations[0]['Instances']
@@ -52,6 +55,101 @@ def find_instance(ec2_client, params):
         'body': json.dumps({
             'instances': instances
         }, default=serialize)
+    }
+
+
+def check_for_elb(ip, elb_cli):
+    response = elb_cli.describe_load_balancers(PageSize=100)
+    marker = response.get('NextMarker')
+
+    for lb in response['LoadBalancerDescriptions']:
+        ips = socket.gethostbyname_ex(lb.get('DNSName'))[-1]
+        if ip in ips:
+            return lb, ips
+
+    while marker is not None:
+        response = elb_cli.describe_load_balancers(
+            Marker=marker, PageSize=100)
+        marker = response.get('NextMarker')
+
+        for lb in response['LoadBalancerDescriptions']:
+            ips = socket.gethostbyname_ex(lb.get('DNSName'))[-1]
+            if ip in ips:
+                return lb, ips
+
+    return None, []
+
+
+def check_for_elbv2(ip, elbv2_cli):
+    response = elbv2_cli.describe_load_balancers(PageSize=100)
+    marker = response.get('NextMarker')
+
+    for lb in response['LoadBalancers']:
+        ips = socket.gethostbyname_ex(lb.get('DNSName'))[-1]
+        if ip in ips:
+            return lb, ips
+
+    while marker is not None:
+        response = elbv2_cli.describe_load_balancers(
+            Marker=marker, PageSize=100)
+        marker = response.get('NextMarker')
+
+        for lb in response['LoadBalancers']:
+            ips = socket.gethostbyname_ex(lb.get('DNSName'))[-1]
+            if ip in ips:
+                return lb, ips
+
+    return None, []
+
+
+def find_elb(credentials, params):
+    ip = params.get('ip')
+
+    if ip is None:
+        return {
+            'statusCode': 400,
+            'body': json.dumps({
+                'message': 'missing ip parameter'
+            })
+        }
+
+    elb_cli = boto3.client('elb', **credentials)
+    lb, ips = check_for_elb(ip, elb_cli)
+
+    if lb:
+        return {
+            'statusCode': 200,
+            'body': json.dumps({
+                'instances': [{
+                    'dns': lb.get('DNSName'),
+                    'name': lb.get('LoadBalancerName'),
+                    'ips': ips,
+                    'type': 'classic'
+                }]
+            })
+        }
+
+    elbv2_cli = boto3.client('elbv2', **credentials)
+    lbv2, ips = check_for_elbv2(ip, elbv2_cli)
+
+    if lbv2:
+        return {
+            'statusCode': 200,
+            'body': json.dumps({
+                'instances': [{
+                    'dns': lbv2.get('DNSName'),
+                    'name': lbv2.get('LoadBalancerName'),
+                    'ips': ips,
+                    'type': lbv2.get('Type')
+                }]
+            })
+        }
+
+    return {
+        'statusCode': 404,
+        'body': json.dumps({
+            'instances': []
+        })
     }
 
 
@@ -101,17 +199,17 @@ def lambda_handler(event, context):
     )
 
     credentials = assumed_role_obj['Credentials']
-
-    ec2_client = boto3.client(
-        'ec2',
-        aws_access_key_id=credentials['AccessKeyId'],
-        aws_secret_access_key=credentials['SecretAccessKey'],
-        aws_session_token=credentials['SessionToken'],
-        region_name=DEFAULT_REGION
-    )
+    credentials = {
+        'aws_access_key_id': credentials['AccessKeyId'],
+        'aws_secret_access_key': credentials['SecretAccessKey'],
+        'aws_session_token': credentials['SessionToken'],
+        'region_name': DEFAULT_REGION
+    }
 
     if fn == 'find-instance':
-        return find_instance(ec2_client, params)
+        return find_instance(credentials, params)
+    if fn == 'find-elb':
+        return find_elb(credentials, params)
 
     return {
         'statusCode': 404,
@@ -119,3 +217,7 @@ def lambda_handler(event, context):
             'message': 'ec2tools fn not found'
         })
     }
+
+
+if __name__ == '__main__':
+    lambda_handler({}, {})
