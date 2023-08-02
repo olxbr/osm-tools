@@ -1,0 +1,28 @@
+name: Burp Scan (API)
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+    branches:
+      - "dast-scan"
+
+jobs:
+  dast-scan:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Run CI-driven Scan Action Step
+        uses: PortSwigger/ci-driven-scan-github-action@main
+        with:
+          enterprise-server-url: ${{ vars.SEC_BURP_ENTERPRISE_SERVER_URL }}
+          enterprise-api-key: ${{ secrets.SEC_BURP_ENTERPRISE_API_KEY }}
+
+      - name: Publish Dast Scan Report
+        if: always()
+        uses: mikepenz/action-junit-report@v3
+        with:
+          report_paths: "burp_junit_report.xml"
+          require_tests: true

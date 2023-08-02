@@ -1,0 +1,12 @@
+site:
+  correlationId: OSM API Gateway
+  startUrls:
+    - https://9o41dl1c9c.execute-api.us-east-1.amazonaws.com/v1
+
+reporting:
+  reportFilePath:
+    - burp_junit_report.xml
+
+  threshold:
+    minimumSeverity: HIGH
+    minimumConfidence: TENTATIVE
