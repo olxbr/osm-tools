@@ -369,7 +369,7 @@ def get_compliance_data():
             filter(lambda i: i.get('deleted') == True, items)))
 
         result['modified'] = len(list(
-            filter(lambda i: i.get('modified') == True, items)))
+            filter(lambda i: i.get('modified') == True and not i.get('deleted'), items)))
 
     except Exception as err:
         log.error(err)
