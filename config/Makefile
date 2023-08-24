@@ -1,9 +1,19 @@
-.PHONY: build
+.PHONY: build upload clean deploy test
+
+function := osm-config-lambda
 
 build:
-	GOARCH=amd64 GOOS=linux go build -o main main.go
-	zip -q main.zip main
+	GOOS=linux GOARCH=arm64 go build -tags lambda.norpc -o bootstrap main.go
+	zip -q bootstrap.zip bootstrap
 
-deploy: build
-	aws lambda update-function-code --function-name osm-config-lambda --zip-file fileb://main.zip
-	@rm main main.zip
+upload:
+	aws lambda update-function-code --function-name $(function) --zip-file fileb://bootstrap.zip
+
+clean:
+	@rm bootstrap bootstrap.zip
+
+deploy: build upload clean
+	@echo "Deployed $(function) to AWS Lambda"
+
+test:
+	go test -v ./...
